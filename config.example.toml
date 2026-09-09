@@ -1,0 +1,47 @@
+# NameSpyglass 配置模板
+# 复制为 config.toml 后按需修改；所有项均有默认值，可只保留要覆盖的项。
+
+# 请求速率上限（req/s，一次批量请求 = 最多 10 个名字）。
+# 官方限频为每 IP 200 请求/2 分钟（≈1.67 req/s），默认 0.5 已留足余量；
+# 代码硬上限 1.5，无论填多少都不会更高。
+rate_per_sec = 0.5
+
+# 批量端点单次名字数（Mojang 上限 10）
+batch_size = 10
+
+# monitor 模式轮询间隔（秒）
+interval = 3600
+
+# 结果新鲜期（秒）：期内已查过的名字在 check/monitor 中默认跳过，--force 可强制重查
+ttl = 86400
+
+# 单次 HTTP 超时（秒）
+timeout = 15.0
+
+# 免认证查询主机优先级（按此顺序容错切换）
+hosts = ["api.minecraftservices.com", "api.mojang.com"]
+
+# SQLite 结果库与输出目录
+db_path = "spyglass.db"
+output_dir = "output"
+
+# 通知：通用 JSON Webhook（{event}/{detail} 为占位符）。
+# 默认模板兼容 Discord；钉钉机器人可用:
+#   webhook_template = '{"msgtype":"text","text":{"content":"[{event}] {detail}"}}'
+# Server酱: webhook_url = "https://sctapi.ftqq.com/<SENDKEY>.send"
+#   webhook_template = '{"title":"{event}","desp":"{detail}"}'
+webhook_url = ""
+webhook_template = '{"content": "[{event}] {detail}"}'
+
+# Windows 桌面通知（需 winotify，缺失时自动跳过）
+toast = true
+
+# 可选：Minecraft access_token（仅 confirm 子命令最终确认候选时使用，约 24h 有效）
+token = ""
+
+# 退避与熔断
+backoff_base = 5.0            # 首次失败退避秒数，之后翻倍
+backoff_max = 600.0           # 单次退避上限（秒）
+max_consecutive_failures = 5  # 连续失败多少次触发熔断
+failure_cooldown = 1800.0     # 熔断冷却（秒）。冷却后恢复尝试；再失败会立即再次熔断。
+                              # 注意：被封锁时本工具的策略是等待恢复，不做代理轮换。

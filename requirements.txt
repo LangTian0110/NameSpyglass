@@ -1,0 +1,4 @@
+httpx>=0.27
+truststore>=0.9
+winotify>=1.1; platform_system == "Windows"
+pytest>=8.0
