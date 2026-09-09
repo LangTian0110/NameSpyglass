@@ -10,6 +10,8 @@ import random
 import time
 from collections.abc import Callable
 
+from .i18n import t
+
 
 class TokenBucket:
     """令牌桶：稳态速率 rate token/s，桶容量 capacity。"""
@@ -22,7 +24,7 @@ class TokenBucket:
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if rate <= 0:
-            raise ValueError("rate 必须为正数")
+            raise ValueError(t("ratelimit.rate_positive"))
         self.rate = rate
         self.capacity = capacity
         self._tokens = capacity

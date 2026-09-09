@@ -11,6 +11,7 @@ from collections.abc import Callable
 
 import httpx
 
+from .i18n import t
 from .net import ssl_context
 
 DEFAULT_TEMPLATE = '{"content": "[{event}] {detail}"}'
@@ -57,9 +58,9 @@ class Notifier:
         try:
             resp = self._client.post(self._webhook_url, json=payload)
             if resp.status_code >= 400:
-                self._out(f"Webhook 返回 HTTP {resp.status_code}")
+                self._out(t("notify.webhook_http", code=resp.status_code))
         except httpx.HTTPError as exc:
-            self._out(f"Webhook 发送失败: {exc.__class__.__name__}")
+            self._out(t("notify.webhook_failed", err=exc.__class__.__name__))
 
     @staticmethod
     def _send_toast(event: str, detail: str) -> None:

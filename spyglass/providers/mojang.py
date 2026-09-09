@@ -26,6 +26,7 @@ from dataclasses import dataclass
 
 import httpx
 
+from ..i18n import t
 from .base import NameResult, ProviderError, RateLimited, Status
 
 
@@ -51,7 +52,7 @@ class MojangProvider:
     def __init__(self, client: httpx.Client, hosts: list[str], timeout: float = 15.0) -> None:
         unknown = [h for h in hosts if h not in _HOST_CONFIG]
         if unknown or not hosts:
-            raise ValueError(f"不支持的主机: {unknown or hosts}，可选: {list(_HOST_CONFIG)}")
+            raise ValueError(t("mojang.unsupported_hosts", hosts=unknown or hosts, valid=list(_HOST_CONFIG)))
         self._client = client
         self._hosts = list(hosts)
         self._timeout = timeout
@@ -80,26 +81,26 @@ class MojangProvider:
                     f"https://{host}{cfg.bulk_path}", json=list(names), timeout=self._timeout
                 )
             except (httpx.TimeoutException, httpx.TransportError) as exc:
-                errors.append(f"{host}: 网络错误 {exc.__class__.__name__}")
+                errors.append(t("mojang.network_error", host=host, err=exc.__class__.__name__))
                 continue
             if resp.status_code == 200:
                 self._sticky = self._hosts.index(host)
                 return self._parse_bulk(names, resp)
             if resp.status_code == 429:
-                raise RateLimited(_retry_after(resp), f"{host} 返回 429")
+                raise RateLimited(_retry_after(resp), t("mojang.rate_limited", host=host))
             if resp.status_code in (400, 404, 405):
                 # 批量端点缺失/请求形态不符 → 尝试下一主机，全部如此则改走单查
                 errors.append(f"{host}: {resp.status_code}")
                 continue
             errors.append(f"{host}: HTTP {resp.status_code}")
-        raise _BulkUnavailable("; ".join(errors) or "无可用主机")
+        raise _BulkUnavailable("; ".join(errors) or t("mojang.no_host"))
 
     @staticmethod
     def _parse_bulk(names: list[str], resp: httpx.Response) -> list[NameResult]:
         try:
             taken = {p["name"].lower(): p["id"] for p in resp.json()}
         except (ValueError, KeyError, TypeError) as exc:
-            raise ProviderError(f"批量响应解析失败: {exc}") from exc
+            raise ProviderError(t("mojang.bulk_parse_failed", err=exc)) from exc
         return [
             NameResult(
                 name=n,
@@ -122,22 +123,22 @@ class MojangProvider:
             try:
                 resp = self._client.get(f"https://{host}{path}", timeout=self._timeout)
             except (httpx.TimeoutException, httpx.TransportError) as exc:
-                errors.append(f"{host}: 网络错误 {exc.__class__.__name__}")
+                errors.append(t("mojang.network_error", host=host, err=exc.__class__.__name__))
                 continue
             if resp.status_code == 200:
                 self._sticky = self._hosts.index(host)
                 try:
                     data = resp.json()
                 except ValueError as exc:
-                    raise ProviderError(f"单查响应解析失败: {exc}") from exc
+                    raise ProviderError(t("mojang.single_parse_failed", err=exc)) from exc
                 return NameResult(name, Status.TAKEN, uuid=data.get("id"))
             if resp.status_code in (204, 404):
                 self._sticky = self._hosts.index(host)
                 return NameResult(name, Status.NOT_FOUND)
             if resp.status_code == 429:
-                raise RateLimited(_retry_after(resp), f"{host} 返回 429")
+                raise RateLimited(_retry_after(resp), t("mojang.rate_limited", host=host))
             errors.append(f"{host}: HTTP {resp.status_code}")
-        raise ProviderError("; ".join(errors) or "无可用主机")
+        raise ProviderError("; ".join(errors) or t("mojang.no_host"))
 
 
 class _BulkUnavailable(Exception):

@@ -63,10 +63,17 @@ python -m spyglass confirm --top 5 --token <MINECRAFT_ACCESS_TOKEN>
 ```
 
 通用参数：`--config config.toml`（默认自动加载）、`--db`、`--output-dir`、
-`--rate`、`--batch-size`、`--quiet`。
+`--rate`、`--batch-size`、`--quiet`、`--lang en|zh`。
 
 进度实时写入 SQLite（`spyglass.db`），中断后直接重跑即可续扫，
 24 小时内查过的名字自动跳过。
+
+## 国际化
+
+所有面向用户的文案（CLI 帮助、进度输出、事件名、webhook 载荷、错误信息）均支持
+英文与简体中文两种语言。启动时自动跟随系统语言（中文系统显示中文，其余显示英文）；
+也可用 `--lang en|zh` 临时覆盖，或在 `config.toml` 的 `lang` 项固定（留空 `""`
+为自动检测）。webhook 载荷中的事件名随之本地化。
 
 ## 配置
 
@@ -80,6 +87,7 @@ python -m spyglass confirm --top 5 --token <MINECRAFT_ACCESS_TOKEN>
 | `webhook_url` | 空 | 通用 JSON Webhook |
 | `toast` | true | Windows 桌面通知（需 winotify，缺失自动跳过） |
 | `token` | 空 | Minecraft access_token（仅 confirm 用） |
+| `lang` | 自动 | 输出语言：`en` 或 `zh`；留空/缺省时跟随系统语言 |
 
 ### 通知适配示例
 
@@ -96,7 +104,8 @@ webhook_template = '{"msgtype":"text","text":{"content":"[{event}] {detail}"}}'
 webhook_template = '{"title":"{event}","desp":"{detail}"}'
 ```
 
-触发的事件：`发现可注册 ID`、`ID 释放`、`ID 被抢注`、`熔断`、`探测失败`。
+触发的事件（文案语言随 `lang` 配置）：
+`发现可注册 ID`、`ID 释放`、`ID 被抢注`、`熔断`、`探测失败`。
 
 ## 限频与容错设计
 

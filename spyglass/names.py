@@ -7,13 +7,15 @@ from __future__ import annotations
 
 import re
 
+from .i18n import t
+
 NAME_RE = re.compile(r"^[A-Za-z0-9_]{3,16}$")
 
 
 def validate_name(name: str) -> str | None:
     """返回错误原因；合法时返回 None。"""
     if not NAME_RE.match(name):
-        return "需为 3-16 位字母/数字/下划线"
+        return t("names.invalid_format")
     return None
 
 
@@ -32,10 +34,10 @@ def load_names(path: str) -> tuple[list[str], list[str]]:
                 continue
             reason = validate_name(line)
             if reason:
-                skipped.append(f"第{lineno}行 '{line}': {reason}")
+                skipped.append(t("names.skip_line", lineno=lineno, line=line, reason=reason))
                 continue
             if line.lower() in seen:
-                skipped.append(f"第{lineno}行 '{line}': 重复")
+                skipped.append(t("names.skip_line", lineno=lineno, line=line, reason=t("names.duplicate")))
                 continue
             seen.add(line.lower())
             names.append(line)

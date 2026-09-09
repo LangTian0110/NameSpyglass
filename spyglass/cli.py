@@ -16,6 +16,7 @@ from pathlib import Path
 
 import httpx
 
+from . import i18n
 from .config import Config
 from .engine import Engine
 from .monitor import run_monitor
@@ -30,53 +31,101 @@ from .store import Store
 
 def main(argv: list[str] | None = None) -> int:
     _safe_utf8_console()
+    # 优先级：--lang 参数 > config.toml 显式 lang > 系统语言自动检测
+    i18n.set_lang(_resolve_lang(argv))
     parser = _build_parser()
     args = parser.parse_args(argv)
     try:
         return args.func(args)
     except KeyboardInterrupt:
-        print("\n已中断；进度实时保存在 SQLite 中，可直接重跑续扫。")
+        print(i18n.t("cli.interrupted"))
         return 130
 
 
 # ---- 参数 ---------------------------------------------------------------
 
+def _resolve_lang(argv: list[str] | None) -> str:
+    """在构建 parser 前确定语言，保证 --help 也是本地化的。"""
+    raw = list(sys.argv[1:] if argv is None else argv)
+    # 1) --lang 显式参数（非法值交给 argparse 的 choices 报错）
+    it = iter(raw)
+    for tok in it:
+        if tok == "--lang":
+            try:
+                value = next(it).strip().lower()
+            except StopIteration:
+                value = ""
+            if value in i18n.LANGUAGES:
+                return value
+        elif tok.startswith("--lang="):
+            value = tok.split("=", 1)[1].strip().lower()
+            if value in i18n.LANGUAGES:
+                return value
+    # 2) config.toml 显式 lang（空串 "" 表示自动，交给第 3 步）
+    cfg_path = _config_path_from_argv(raw)
+    if cfg_path is None and Path("config.toml").is_file():
+        cfg_path = "config.toml"
+    if cfg_path and Path(cfg_path).is_file():
+        try:
+            cfg_lang = Config.load(cfg_path).lang.strip().lower()
+            if cfg_lang in i18n.LANGUAGES:
+                return cfg_lang
+        except Exception:
+            pass
+    # 3) 跟随系统语言
+    return i18n.detect_system_lang()
+
+
+def _config_path_from_argv(argv: list[str]) -> str | None:
+    it = iter(argv)
+    for tok in it:
+        if tok == "--config":
+            try:
+                return next(it)
+            except StopIteration:
+                return None
+        if tok.startswith("--config="):
+            return tok.split("=", 1)[1]
+    return None
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="spyglass",
-        description="Minecraft ID 可用性探测与释放监控（合规版：名单驱动、限频退避、无代理轮换）",
+        description=i18n.t("cli.description"),
     )
-    parser.add_argument("--config", default=None, help="TOML 配置文件路径（默认自动加载 ./config.toml）")
+    parser.add_argument("--config", default=None, help=i18n.t("cli.help_config"))
+    parser.add_argument("--lang", choices=list(i18n.LANGUAGES), default=None, help=i18n.t("cli.help_lang"))
     sub = parser.add_subparsers(dest="command", required=True)
 
     def add_common(sp: argparse.ArgumentParser) -> None:
-        sp.add_argument("--names", default="names.txt", help="名单文件，一行一个 ID")
-        sp.add_argument("--db", default=None, help="SQLite 路径（覆盖配置）")
-        sp.add_argument("--output-dir", default=None, help="输出目录（覆盖配置）")
-        sp.add_argument("--rate", type=float, default=None, help="请求速率 req/s（硬上限 1.5）")
-        sp.add_argument("--batch-size", type=int, default=None, help="批量端点单次名字数（≤10）")
-        sp.add_argument("--token", default=None, help="Minecraft access_token（confirm 用）")
-        sp.add_argument("--quiet", action="store_true", help="减少控制台输出")
+        sp.add_argument("--names", default="names.txt", help=i18n.t("cli.help_names"))
+        sp.add_argument("--db", default=None, help=i18n.t("cli.help_db"))
+        sp.add_argument("--output-dir", default=None, help=i18n.t("cli.help_output_dir"))
+        sp.add_argument("--rate", type=float, default=None, help=i18n.t("cli.help_rate"))
+        sp.add_argument("--batch-size", type=int, default=None, help=i18n.t("cli.help_batch_size"))
+        sp.add_argument("--token", default=None, help=i18n.t("cli.help_token"))
+        sp.add_argument("--quiet", action="store_true", help=i18n.t("cli.help_quiet"))
 
-    sp_check = sub.add_parser("check", help="一次性探测名单")
+    sp_check = sub.add_parser("check", help=i18n.t("cli.help_check"))
     add_common(sp_check)
-    sp_check.add_argument("--force", action="store_true", help="忽略结果新鲜期，强制重查")
+    sp_check.add_argument("--force", action="store_true", help=i18n.t("cli.help_force"))
     sp_check.set_defaults(func=_cmd_check)
 
-    sp_monitor = sub.add_parser("monitor", help="持续监控名单，检测 ID 释放/被抢注")
+    sp_monitor = sub.add_parser("monitor", help=i18n.t("cli.help_monitor"))
     add_common(sp_monitor)
-    sp_monitor.add_argument("--interval", type=int, default=None, help="轮询间隔秒数（默认取配置）")
+    sp_monitor.add_argument("--interval", type=int, default=None, help=i18n.t("cli.help_interval"))
     sp_monitor.set_defaults(func=_cmd_monitor)
 
-    sp_report = sub.add_parser("report", help="汇总并导出当前结果")
+    sp_report = sub.add_parser("report", help=i18n.t("cli.help_report"))
     sp_report.add_argument("--db", default=None)
     sp_report.add_argument("--output-dir", default=None)
     sp_report.set_defaults(func=_cmd_report)
 
-    sp_confirm = sub.add_parser("confirm", help="用认证端点对候选做最终确认（20 次/5 分钟）")
+    sp_confirm = sub.add_parser("confirm", help=i18n.t("cli.help_confirm"))
     sp_confirm.add_argument("--db", default=None)
-    sp_confirm.add_argument("--top", type=int, default=5, help="确认前 N 个未注册候选")
-    sp_confirm.add_argument("--token", default=None, help="Minecraft access_token")
+    sp_confirm.add_argument("--top", type=int, default=5, help=i18n.t("cli.help_top"))
+    sp_confirm.add_argument("--token", default=None, help=i18n.t("cli.help_token"))
     sp_confirm.set_defaults(func=_cmd_confirm)
     return parser
 
@@ -99,6 +148,7 @@ def _load_config(args) -> Config:
         cfg.batch_size = args.batch_size
     if getattr(args, "token", None):
         cfg.token = args.token
+    # 语言已在 main() 中按 “--lang > config > 系统检测” 解析完成，此处不再改动
     return cfg
 
 
@@ -106,12 +156,12 @@ def _load_names_or_exit(path: str) -> list[str]:
     try:
         names, skipped = load_names(path)
     except FileNotFoundError:
-        print(f"名单文件不存在: {path}", file=sys.stderr)
+        print(i18n.t("cli.names_file_missing", path=path), file=sys.stderr)
         raise SystemExit(2)
     for s in skipped:
-        print(f"  跳过: {s}")
+        print(i18n.t("cli.skip_prefix", reason=s))
     if not names:
-        print(f"名单 {path} 中没有合法 ID（规则：3-16 位字母/数字/下划线）", file=sys.stderr)
+        print(i18n.t("cli.no_valid_ids", path=path), file=sys.stderr)
         raise SystemExit(2)
     return names
 
@@ -165,7 +215,7 @@ def _cmd_monitor(args) -> int:
     finally:
         notifier.close()
         store.close()
-    print("监控已停止，进度已保存。")
+    print(i18n.t("cli.monitor_stopped"))
     return 0
 
 
@@ -175,9 +225,9 @@ def _cmd_report(args) -> int:
     try:
         out_dir = export_results(store, cfg.output_dir)
         counts = store.count_by_status()
-        print("状态汇总:", " · ".join(f"{k}={v}" for k, v in sorted(counts.items())) or "（无记录）")
+        print(i18n.t("cli.status_summary"), " · ".join(f"{k}={v}" for k, v in sorted(counts.items())) or i18n.t("cli.no_records"))
         available = [r.name for r in store.all() if r.status == Status.NOT_FOUND]
-        print(f"当前可注册 {len(available)} 个，已写入 {out_dir / 'available.txt'}")
+        print(i18n.t("cli.report_available", n=len(available), path=out_dir / "available.txt"))
     finally:
         store.close()
     return 0
@@ -187,22 +237,22 @@ def _cmd_confirm(args) -> int:
     cfg = _load_config(args)
     token = cfg.token
     if not token:
-        print("需要 Minecraft access_token：通过 --token 或配置文件的 token 项提供。", file=sys.stderr)
+        print(i18n.t("cli.token_required"), file=sys.stderr)
         return 2
     store = Store(cfg.db_path)
     candidates = [r.name for r in store.all() if r.status == Status.NOT_FOUND][: max(args.top, 0)]
     if not candidates:
-        print("库中没有未注册候选可确认。")
+        print(i18n.t("cli.no_candidates"))
         store.close()
         return 0
-    print(f"将用认证端点确认 {len(candidates)} 个候选（限制 20 次/5 分钟，请耐心等待）:")
+    print(i18n.t("cli.confirming", n=len(candidates)))
     client = httpx.Client(timeout=15.0, verify=ssl_context())
     provider = MCAuthProvider(client, token)
     try:
         for name in candidates:
             result = provider.check(name)
             store.upsert(result)
-            print(f"  {result.name}: {result.status.value}（{result.detail}）")
+            print(i18n.t("cli.confirm_result", name=result.name, status=result.status.value, detail=result.detail))
     finally:
         client.close()
         store.close()
@@ -234,11 +284,17 @@ def export_results(store: Store, output_dir: str) -> Path:
 
 def _print_summary(stats, out_dir: Path) -> None:
     print(
-        f"完成：探测 {stats.checked}（跳过 {stats.skipped}）· "
-        f"可注册 {stats.available} · 占用 {stats.taken} · 失败 {stats.errors} · "
-        f"退避累计 {stats.retry_wait:.0f}s"
+        i18n.t(
+            "cli.summary_done",
+            checked=stats.checked,
+            skipped=stats.skipped,
+            available=stats.available,
+            taken=stats.taken,
+            errors=stats.errors,
+            wait=f"{stats.retry_wait:.0f}",
+        )
     )
-    print(f"可注册名单: {out_dir / 'available.txt'}  明细: {out_dir / 'results.csv'}")
+    print(i18n.t("cli.summary_paths", available_path=out_dir / "available.txt", results_path=out_dir / "results.csv"))
 
 
 def _safe_utf8_console() -> None:

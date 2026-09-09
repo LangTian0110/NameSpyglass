@@ -15,6 +15,7 @@ from collections.abc import Callable
 
 import httpx
 
+from ..i18n import t
 from ..ratelimit import TokenBucket
 from .base import NameResult, ProviderError, RateLimited, Status
 
@@ -38,7 +39,7 @@ class MCAuthProvider:
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if not token:
-            raise ValueError("需要 Minecraft access_token（config 的 token 项）")
+            raise ValueError(t("auth.token_required"))
         self._client = client
         self._token = token
         self._bucket = TokenBucket(_AUTH_RATE_PER_SEC, clock=clock, sleep=sleep)
@@ -51,18 +52,18 @@ class MCAuthProvider:
             timeout=15.0,
         )
         if resp.status_code == 401:
-            raise ProviderError("token 无效或已过期，请更新配置中的 token")
+            raise ProviderError(t("auth.token_invalid"))
         if resp.status_code == 429:
             retry = resp.headers.get("Retry-After")
             raise RateLimited(float(retry) if retry and retry.replace(".", "").isdigit() else None)
         if resp.status_code != 200:
-            raise ProviderError(f"认证端点返回 HTTP {resp.status_code}")
+            raise ProviderError(t("auth.http_error", code=resp.status_code))
         status = _STATUS_MAP.get(resp.json().get("status"))
         if status is None:
-            raise ProviderError(f"认证端点返回未知状态: {resp.text[:100]}")
-        detail = "认证端点确认" + {
-            Status.NOT_FOUND: "可注册",
-            Status.TAKEN: "已占用",
-            Status.NOT_ALLOWED: "保留名",
+            raise ProviderError(t("auth.unknown_status", text=resp.text[:100]))
+        detail = {
+            Status.NOT_FOUND: t("auth.detail_available"),
+            Status.TAKEN: t("auth.detail_duplicate"),
+            Status.NOT_ALLOWED: t("auth.detail_not_allowed"),
         }[status]
         return NameResult(name, status, detail=detail)

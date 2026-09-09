@@ -1,3 +1,4 @@
+from spyglass import i18n
 from spyglass.names import load_names, validate_name
 
 
@@ -27,4 +28,5 @@ def test_load_names_dedupe_and_skip(tmp_path):
     names, skipped = load_names(str(f))
     assert names == ["Notch", "ok_name"]  # 大小写不敏感去重，保留首见写法
     assert len(skipped) == 3  # ab / 名字 / 重复
-    assert any("重复" in s for s in skipped)
+    # 重复标记随语言变化，断言用 key 派生文案避免硬编码
+    assert any(i18n.t("names.duplicate") in s for s in skipped)

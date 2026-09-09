@@ -39,6 +39,10 @@ toast = true
 # 可选：Minecraft access_token（仅 confirm 子命令最终确认候选时使用，约 24h 有效）
 token = ""
 
+# 输出语言：留空 ""（默认）时自动跟随系统语言（中文系统 → zh，其余 → en）；
+# 也可显式设为 "en" 或 "zh"。--lang en|zh 可临时覆盖。
+lang = ""
+
 # 退避与熔断
 backoff_base = 5.0            # 首次失败退避秒数，之后翻倍
 backoff_max = 600.0           # 单次退避上限（秒）

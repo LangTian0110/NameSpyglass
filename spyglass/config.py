@@ -5,6 +5,8 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass, field, fields
 
+from .i18n import LANGUAGES, t
+
 # 代码层硬上限：官方限频为每 IP 200 请求 / 2 分钟（≈1.67 req/s），
 # 无论配置写成多少，速率都不会超过该值，防止误配出危险速率。
 HARD_MAX_RATE = 1.5
@@ -26,6 +28,7 @@ class Config:
     webhook_template: str = '{"content": "[{event}] {detail}"}'
     toast: bool = True  # Windows 桌面通知（需 winotify，缺失时自动跳过）
     token: str = ""  # 可选 Minecraft access_token，仅 confirm 子命令使用
+    lang: str = ""  # 输出语言：""（默认）自动跟随系统语言；显式 "en" / "zh" 可覆盖
     # 退避与熔断
     backoff_base: float = 5.0
     backoff_max: float = 600.0
@@ -35,6 +38,9 @@ class Config:
     def __post_init__(self) -> None:
         self.rate_per_sec = min(max(float(self.rate_per_sec), 0.01), HARD_MAX_RATE)
         self.batch_size = min(max(int(self.batch_size), 1), 10)
+        self.lang = str(self.lang).strip().lower()
+        if self.lang not in LANGUAGES and self.lang != "":
+            raise ValueError(t("config.invalid_lang", lang=self.lang))
 
     @classmethod
     def load(cls, path: str | None = None) -> "Config":
@@ -45,5 +51,5 @@ class Config:
         known = {f.name for f in fields(cls)}
         unknown = set(data) - known
         if unknown:
-            raise ValueError(f"配置中存在未知项: {', '.join(sorted(unknown))}")
+            raise ValueError(t("config.unknown_keys", keys=", ".join(sorted(unknown))))
         return cls(**data)

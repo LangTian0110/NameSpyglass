@@ -22,6 +22,24 @@ def test_config_rejects_unknown_keys(tmp_path):
         Config.load(str(f))
 
 
+def test_config_lang_defaults_to_auto():
+    assert Config().lang == ""
+
+
+def test_config_lang_accepts_explicit_values():
+    assert Config(lang="en").lang == "en"
+    assert Config(lang="ZH").lang == "zh"  # 归一化小写
+
+
+def test_config_rejects_invalid_lang(tmp_path):
+    f = tmp_path / "config.toml"
+    f.write_text('lang = "fr"\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="fr"):
+        Config.load(str(f))
+    with pytest.raises(ValueError, match="fr"):
+        Config(lang="fr")
+
+
 def test_notifier_webhook_template():
     captured = {}
 

@@ -72,10 +72,19 @@ python -m spyglass confirm --top 5 --token <MINECRAFT_ACCESS_TOKEN>
 ```
 
 Common options: `--config config.toml` (auto-loaded by default), `--db`,
-`--output-dir`, `--rate`, `--batch-size`, `--quiet`.
+`--output-dir`, `--rate`, `--batch-size`, `--quiet`, `--lang en|zh`.
 
 Progress is written to SQLite (`spyglass.db`) in real time; if interrupted, just
 rerun to resume — names checked within the last 24 hours are skipped automatically.
+
+## Internationalization
+
+All user-facing text (CLI help, progress output, event names, webhook payloads,
+error messages) is bilingual — English and Simplified Chinese. On startup the
+language follows the system automatically (a Chinese system shows Chinese,
+anything else shows English). Override it with `--lang en|zh`, or pin it via the
+`lang` key in `config.toml` (`""` means auto-detect). Event names in webhook
+payloads follow the same language setting.
 
 ## Configuration
 
@@ -89,6 +98,7 @@ Copy `config.example.toml` to `config.toml` and adjust as needed. Common options
 | `webhook_url` | empty | Generic JSON webhook |
 | `toast` | true | Windows desktop notification (requires winotify; skipped if missing) |
 | `token` | empty | Minecraft access_token (only used by confirm) |
+| `lang` | auto | Output language: `en` or `zh`; empty/omitted follows the system language |
 
 ### Webhook Template Examples
 
@@ -105,9 +115,8 @@ webhook_template = '{"msgtype":"text","text":{"content":"[{event}] {detail}"}}'
 webhook_template = '{"title":"{event}","desp":"{detail}"}'
 ```
 
-Events emitted (kept in Chinese in the actual payloads):
-`发现可注册 ID` (registrable ID found), `ID 释放` (ID released),
-`ID 被抢注` (ID sniped), `熔断` (circuit breaker tripped), `探测失败` (probe failed).
+Events emitted (the language follows the configured `lang`):
+`Registrable ID found`, `ID released`, `ID sniped`, `Circuit breaker tripped`, `Probe failed`.
 
 ## Rate Limiting & Fault Tolerance
 

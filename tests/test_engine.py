@@ -1,4 +1,5 @@
 from spyglass.engine import Engine
+from spyglass import i18n
 from spyglass.notify import Notifier
 from spyglass.providers.base import NameResult, RateLimited, Status
 from spyglass.ratelimit import TokenBucket
@@ -74,8 +75,9 @@ def test_run_records_and_events(tmp_path):
 
     assert stats.checked == 3 and stats.available == 2 and stats.taken == 1
     assert store.get("a").status == Status.NOT_FOUND
-    # 首次发现未注册 → 事件通知（两条 NOT_FOUND 名字各一条）
-    events = [m for m in msgs if m.startswith("[发现可注册 ID]")]
+    # 首次发现未注册 → 事件通知（两条 NOT_FOUND 名字各一条）。事件名随语言而变，断言用 key 前缀避免硬编码。
+    event_tag = f"[{i18n.t('engine.event_found')}]"
+    events = [m for m in msgs if m.startswith(event_tag)]
     assert len(events) == 2
     notifier.close()
 
@@ -97,8 +99,10 @@ def test_transition_events(tmp_path):
     engine.run(["x"], force=True)
     engine.run(["y"], force=True)
 
-    assert any(m.startswith("[ID 释放]") and "x" in m for m in msgs)
-    assert any(m.startswith("[ID 被抢注]") and "y" in m for m in msgs)
+    released_tag = f"[{i18n.t('engine.event_released')}]"
+    sniped_tag = f"[{i18n.t('engine.event_sniped')}]"
+    assert any(m.startswith(released_tag) and "x" in m for m in msgs)
+    assert any(m.startswith(sniped_tag) and "y" in m for m in msgs)
     assert store.get("x").prev_status == Status.TAKEN
     assert store.get("y").prev_status == Status.NOT_FOUND
     notifier.close()

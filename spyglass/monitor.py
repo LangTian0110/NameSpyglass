@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
+from .i18n import t
+
 
 def run_monitor(
     engine,
@@ -16,11 +18,18 @@ def run_monitor(
     round_no = 0
     while True:
         round_no += 1
-        log(f"—— 第 {round_no} 轮探测开始 ——")
+        log(t("monitor.round_start", n=round_no))
         stats = engine.run(names)
         export()
         log(
-            f"—— 第 {round_no} 轮完成：可注册 {stats.available} · 占用 {stats.taken} · "
-            f"失败 {stats.errors} · 退避累计 {stats.retry_wait:.0f}s，下一轮 {interval}s 后 ——"
+            t(
+                "monitor.round_done",
+                n=round_no,
+                a=stats.available,
+                t=stats.taken,
+                e=stats.errors,
+                w=f"{stats.retry_wait:.0f}",
+                i=interval,
+            )
         )
         time.sleep(interval)
