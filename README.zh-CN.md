@@ -35,6 +35,11 @@
 
 ## 安装
 
+**Windows — 免装 Python：** 从 [Latest Release](https://github.com/LangTian0110/NameSpyglass/releases/latest)
+下载单文件 `spyglass.exe`，直接跳到「使用」章节。
+
+**源码安装**（任意平台）：
+
 ```bash
 python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt   # Windows；Linux/macOS 用 .venv/bin/pip
@@ -64,6 +69,9 @@ python -m spyglass confirm --top 5 --token <MINECRAFT_ACCESS_TOKEN>
 
 通用参数：`--config config.toml`（默认自动加载）、`--db`、`--output-dir`、
 `--rate`、`--batch-size`、`--quiet`、`--lang en|zh`。
+
+> 使用 Release 里的 `spyglass.exe`？把 `python -m spyglass` 换成 `spyglass`
+> （或 exe 的完整路径）即可，其余完全一致。
 
 进度实时写入 SQLite（`spyglass.db`），中断后直接重跑即可续扫，
 24 小时内查过的名字自动跳过。
@@ -119,9 +127,13 @@ webhook_template = '{"title":"{event}","desp":"{detail}"}'
   （[truststore](https://pypi.org/project/truststore/)），规避 certifi 包在
   部分网络环境下证书链不全的问题。
 
-## 打包为单文件 exe
+## 单文件 exe（打包与下载）
 
-你也可以将工具打包成 Windows 单文件 `.exe`，在没有 Python 的环境中直接运行。
+每个 GitHub Release 都附带预构建的单文件 `spyglass.exe`（约 12.9 MB）——
+[点这里下载最新版](https://github.com/LangTian0110/NameSpyglass/releases/latest)。
+放到任意目录即可运行，无需安装 Python。
+
+也可以从源码自行打包：
 
 ```bash
 # 运行构建脚本（产出 dist/spyglass.exe，约 12 MB）
@@ -142,11 +154,13 @@ dist/spyglass.exe report
 - 这是单文件控制台构建：首次启动可能需要数秒完成解压到临时目录的过程。
 - 工作路径（`names.txt`、`config.toml`、`spyglass.db`、`output/`）与脚本版行为相同——基于当前工作目录的相对路径。
 - 本方案不使用 UPX 等压缩壳，以避免杀毒软件误报。
+- Release 中的二进制未签名，首次运行 Windows SmartScreen 可能弹出警告
+  （点「更多信息」→「仍要运行」即可）。
 
 ## 开发
 
 ```bash
-.venv/Scripts/python -m pytest -q   # 27 个单测，全部 mock，不打真实 API
+.venv/Scripts/python -m pytest -q   # 46 个测试（单测全部 mock；exe 套件每次运行会先构建一次 .exe）
 ```
 
 代码结构：`spyglass/` 下 `names`(名单校验) → `providers`(API 适配) →

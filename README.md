@@ -42,6 +42,12 @@ defaults to 0.5 req/s (the batch endpoint checks 10 names per request, i.e. abou
 
 ## Installation
 
+**Windows — no Python needed:** grab the single-file `spyglass.exe` from the
+[latest release](https://github.com/LangTian0110/NameSpyglass/releases/latest)
+and skip straight to Usage.
+
+**From source** (any OS):
+
 ```bash
 python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt   # Windows; Linux/macOS use .venv/bin/pip
@@ -73,6 +79,9 @@ python -m spyglass confirm --top 5 --token <MINECRAFT_ACCESS_TOKEN>
 
 Common options: `--config config.toml` (auto-loaded by default), `--db`,
 `--output-dir`, `--rate`, `--batch-size`, `--quiet`, `--lang en|zh`.
+
+> Using the released `spyglass.exe`? Replace `python -m spyglass` with
+> `spyglass` (or the full path to the exe) — everything else is identical.
 
 Progress is written to SQLite (`spyglass.db`) in real time; if interrupted, just
 rerun to resume — names checked within the last 24 hours are skipped automatically.
@@ -136,8 +145,11 @@ Events emitted (the language follows the configured `lang`):
 
 ## Standalone Executable
 
-You can also build a single `.exe` for Windows so the tool can be run on machines
-without Python installed.
+A pre-built single-file `spyglass.exe` (~12.9 MB) is attached to every GitHub
+release — [download the latest here](https://github.com/LangTian0110/NameSpyglass/releases/latest).
+Drop it in any folder and run it; no Python installation required.
+
+You can also build it yourself from source:
 
 ```bash
 # Run the build script (produces dist/spyglass.exe, ~12 MB)
@@ -160,11 +172,13 @@ Notes:
 - Working paths (`names.txt`, `config.toml`, `spyglass.db`, `output/`) behave
   exactly like the script version — relative to the current working directory.
 - This project does not use UPX/packers in order to avoid antivirus false positives.
+- The released binary is unsigned, so Windows SmartScreen may show a warning on
+  first run ("More info" → "Run anyway").
 
 ## Development
 
 ```bash
-.venv/Scripts/python -m pytest -q   # 27 unit tests, all mocked, no real API calls
+.venv/Scripts/python -m pytest -q   # 46 tests (unit tests mocked; the exe suite builds the .exe once per run)
 ```
 
 Code structure: under `spyglass/`, `names` (list validation) → `providers`
