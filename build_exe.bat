@@ -10,6 +10,12 @@ if not exist "%PY%" (
     exit /b 1
 )
 
+set "ICONFLAG=--icon icon.ico"
+if not exist "%~dp0icon.ico" (
+    echo [WARN] icon.ico not found, building without custom icon
+    set "ICONFLAG="
+)
+
 "%PY%" -m PyInstaller --version >nul 2>&1
 if errorlevel 1 (
     echo Installing PyInstaller...
@@ -24,6 +30,7 @@ if errorlevel 1 (
     --optimize 2 ^
     --clean ^
     --noconfirm ^
+    %ICONFLAG% ^
     --hidden-import truststore ^
     --hidden-import winotify ^
     --exclude-module pytest ^
