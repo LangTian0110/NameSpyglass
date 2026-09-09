@@ -134,6 +134,33 @@ Events emitted (the language follows the configured `lang`):
   ([truststore](https://pypi.org/project/truststore/)), avoiding certifi's
   incomplete certificate chain issues in some network environments.
 
+## Standalone Executable
+
+You can also build a single `.exe` for Windows so the tool can be run on machines
+without Python installed.
+
+```bash
+# Run the build script (produces dist/spyglass.exe, ~12 MB)
+build_exe.bat
+```
+
+Usage is identical to the Python version:
+
+```bash
+dist/spyglass.exe check --names my_names.txt
+dist/spyglass.exe --lang en check --names my_names.txt
+dist/spyglass.exe monitor --names my_names.txt --interval 3600
+dist/spyglass.exe report
+```
+
+Notes:
+
+- The `.exe` is a one-file console build: the first launch may take a few seconds
+  while the file unpacks itself to a temporary directory.
+- Working paths (`names.txt`, `config.toml`, `spyglass.db`, `output/`) behave
+  exactly like the script version — relative to the current working directory.
+- This project does not use UPX/packers in order to avoid antivirus false positives.
+
 ## Development
 
 ```bash

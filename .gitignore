@@ -21,3 +21,8 @@ desktop.ini
 .idea/
 .vscode/
 .zcode/
+
+# PyInstaller 构建产物
+build/
+dist/
+*.spec

@@ -119,6 +119,30 @@ webhook_template = '{"title":"{event}","desp":"{detail}"}'
   （[truststore](https://pypi.org/project/truststore/)），规避 certifi 包在
   部分网络环境下证书链不全的问题。
 
+## 打包为单文件 exe
+
+你也可以将工具打包成 Windows 单文件 `.exe`，在没有 Python 的环境中直接运行。
+
+```bash
+# 运行构建脚本（产出 dist/spyglass.exe，约 12 MB）
+build_exe.bat
+```
+
+使用方式与 Python 脚本版本完全一致：
+
+```bash
+dist/spyglass.exe check --names my_names.txt
+dist/spyglass.exe --lang en check --names my_names.txt
+dist/spyglass.exe monitor --names my_names.txt --interval 3600
+dist/spyglass.exe report
+```
+
+注意事项：
+
+- 这是单文件控制台构建：首次启动可能需要数秒完成解压到临时目录的过程。
+- 工作路径（`names.txt`、`config.toml`、`spyglass.db`、`output/`）与脚本版行为相同——基于当前工作目录的相对路径。
+- 本方案不使用 UPX 等压缩壳，以避免杀毒软件误报。
+
 ## 开发
 
 ```bash
